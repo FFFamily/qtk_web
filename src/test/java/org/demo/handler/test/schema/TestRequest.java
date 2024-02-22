@@ -1,6 +1,6 @@
 package org.demo.handler.test.schema;
 
-import annotation.ApiRequestSchema;
+import web.annotation.ApiRequestSchema;
 
 @ApiRequestSchema
 public class TestRequest {
