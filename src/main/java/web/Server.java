@@ -1,5 +1,7 @@
 package web;
 
+import io.vertx.core.http.HttpMethod;
+import io.vertx.core.http.HttpServerResponse;
 import org.reflections.scanners.MethodAnnotationsScanner;
 import org.reflections.scanners.SubTypesScanner;
 import org.reflections.scanners.TypeAnnotationsScanner;
@@ -15,6 +17,7 @@ import org.reflections.util.ConfigurationBuilder;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.lang.reflect.Parameter;
 import java.util.Set;
 import java.util.function.Function;
 
@@ -79,16 +82,37 @@ public class Server {
         Set<Method> allHandler = reflections.getMethodsAnnotatedWith(ApiHandler.class);
         // 遍历所有的请求
         allHandler.forEach(handler -> {
+            Class<?> clazz = handler.getDeclaringClass();
+            Object o;
+            try {
+                o = clazz.getDeclaredConstructors()[0].newInstance();
+            } catch (InstantiationException | IllegalAccessException | InvocationTargetException e) {
+                throw new RuntimeException(e);
+            }
+            Object finalO = o;
             Function<Object[],Object> func = (Object[] args) -> {
                 handler.setAccessible(true);
                 try {
-                    return handler.invoke(args);
+                    // 拿到方法参数
+                    Parameter[] parameters = handler.getParameters();
+                    // 可以写一个解析器，什么参数就生成什么解析器，然后去解析
+                    for (Parameter parameter : parameters) {
+                        // 解析方法参数注解
+                        // 主要的核心注解为：ApiRequestBody、
+                    }
+                    return handler.invoke(finalO, (Object) null);
                 } catch (IllegalAccessException | InvocationTargetException e) {
                     throw new RuntimeException(e);
                 }
             };
-            router.route().handler(context -> {
-                func.apply(null);
+            String[] paths = clazz.getName().split("\\.");
+            String name = "/"+paths[paths.length-2];
+            router.route(HttpMethod.GET,name).handler(context -> {
+                Object apply = func.apply(null);
+                if (apply != null){
+                    context.response().end(apply.toString());
+                }
+
             });
         });
         return router;

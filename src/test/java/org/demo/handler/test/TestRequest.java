@@ -1,4 +1,4 @@
-package org.demo.handler.test.schema;
+package org.demo.handler.test;
 
 import web.annotation.ApiRequestSchema;
 
