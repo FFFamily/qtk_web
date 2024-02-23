@@ -10,11 +10,13 @@ import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpServer;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.handler.BodyHandler;
+import web.annotation.base.AbstractApiMethodParam;
 import web.ops.ServerOptions;
 import org.reflections.Reflections;
 import org.reflections.util.ClasspathHelper;
 import org.reflections.util.ConfigurationBuilder;
 
+import java.lang.annotation.Annotation;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
@@ -89,22 +91,7 @@ public class Server {
             } catch (InstantiationException | IllegalAccessException | InvocationTargetException e) {
                 throw new RuntimeException(e);
             }
-            Object finalO = o;
-            Function<Object[],Object> func = (Object[] args) -> {
-                handler.setAccessible(true);
-                try {
-                    // 拿到方法参数
-                    Parameter[] parameters = handler.getParameters();
-                    // 可以写一个解析器，什么参数就生成什么解析器，然后去解析
-                    for (Parameter parameter : parameters) {
-                        // 解析方法参数注解
-                        // 主要的核心注解为：ApiRequestBody、
-                    }
-                    return handler.invoke(finalO, (Object) null);
-                } catch (IllegalAccessException | InvocationTargetException e) {
-                    throw new RuntimeException(e);
-                }
-            };
+            Function<Object[], Object> func = getObjectFunction(handler, o);
             String[] paths = clazz.getName().split("\\.");
             String name = "/"+paths[paths.length-2];
             router.route(HttpMethod.GET,name).handler(context -> {
@@ -116,6 +103,26 @@ public class Server {
             });
         });
         return router;
+    }
+
+    private static Function<Object[], Object> getObjectFunction(Method handler, Object o) {
+        // 拿到方法参数
+        Parameter[] parameters = handler.getParameters();
+        // 可以写一个解析器，什么参数就生成什么解析器，然后去解析
+        for (Parameter parameter : parameters) {
+            // 解析方法参数注解 若存在对应注解就进行解析,没有就不赋值
+            // 除了web框架中已有的，同时也要支持用户自定义的注解
+
+        }
+        Function<Object[],Object> func = (Object[] args) -> {
+            handler.setAccessible(true);
+            try {
+                return handler.invoke(o, (Object) null);
+            } catch (IllegalAccessException | InvocationTargetException e) {
+                throw new RuntimeException(e);
+            }
+        };
+        return func;
     }
 
 }
