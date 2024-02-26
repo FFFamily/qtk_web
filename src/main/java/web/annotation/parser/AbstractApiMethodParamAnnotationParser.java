@@ -1,4 +1,4 @@
 package web.annotation.parser;
 
-public abstract class AbstractApiMethodParamAnnotationParser implements ApiMethodParamAnnotationParser{
+public abstract class AbstractApiMethodParamAnnotationParser<T> implements ApiMethodParamAnnotationParser<T>{
 }

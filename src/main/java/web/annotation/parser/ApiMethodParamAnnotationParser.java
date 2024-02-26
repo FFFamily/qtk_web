@@ -1,10 +1,12 @@
 package web.annotation.parser;
 
-import java.lang.annotation.Annotation;
+import io.vertx.ext.web.RoutingContext;
+
+import java.lang.reflect.Parameter;
 
 /**
  * 方法参数注解
  */
-public interface  ApiMethodParamAnnotationParser {
-    public Object parser(Annotation annotation);
+public interface ApiMethodParamAnnotationParser<T> {
+    public T parser(Parameter parameter, RoutingContext context);
 }

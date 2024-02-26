@@ -1,10 +1,13 @@
 package web.annotation.parser;
 
-import java.lang.annotation.Annotation;
+import io.vertx.ext.web.RoutingContext;
 
-public class DefaultApiMethodParamAnnotationParser extends AbstractApiMethodParamAnnotationParser{
+import java.lang.reflect.Parameter;
+
+public class DefaultApiMethodParamAnnotationParser extends AbstractApiMethodParamAnnotationParser<Object>{
+
     @Override
-    public Object parser(Annotation annotation) {
+    public Object parser(Parameter parameter, RoutingContext context) {
         return null;
     }
 }
