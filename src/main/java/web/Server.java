@@ -75,10 +75,9 @@ public class Server {
     private Router initRouter() {
         // 路由
         Router router = Router.router(vertx);
-        router
-                .route("/*")
-                // 创建请求体处理
-                .handler(BodyHandler.create());
+//        router.route("/*")
+//                // 创建请求体处理
+//                .handler(BodyHandler.create());
         // 扫描 EnableWeb 下的所有 handler
         Reflections reflections = new Reflections(
                 new ConfigurationBuilder()
@@ -103,8 +102,8 @@ public class Server {
             String[] paths = clazz.getName().split("\\.");
             String name = "/" + paths[paths.length - 2];
             System.out.println("生成接口："+ name);
-            router.route(HttpMethod.GET, name)
-                    .handler(context -> {
+            router.route(HttpMethod.POST, name)
+                    .blockingHandler(context -> {
                         // 拿到方法参数
                         Parameter[] parameters = handler.getParameters();
                         Object[] arg = new Object[parameters.length];
