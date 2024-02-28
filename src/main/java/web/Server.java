@@ -100,8 +100,9 @@ public class Server {
             Class<?> clazz = handler.getDeclaringClass();
             Object o;
             try {
-                o = clazz.getDeclaredConstructors()[0].newInstance();
-            } catch (InstantiationException | IllegalAccessException | InvocationTargetException e) {
+                // 我可以理解为这里只能支持单例的接口
+                o = clazz.getDeclaredConstructor().newInstance();
+            } catch (InstantiationException | IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
                 throw new RuntimeException(e);
             }
             Function<Object[], Object> func = getObjectFunction(handler, o);
@@ -113,6 +114,7 @@ public class Server {
                     .blockingHandler(context -> {
 //                        BodyHandler bodyHandler = BodyHandler.create();
                         // 拿到方法参数
+                        // TODO 不必要每次都需要去解析
                         Parameter[] parameters = handler.getParameters();
                         Object[] arg = new Object[parameters.length];
                         // 可以写一个解析器，什么参数就生成什么解析器，然后去解析
@@ -121,15 +123,22 @@ public class Server {
                             // 除了web框架中已有的，同时也要支持用户自定义的注解
                             arg[i] = MethodParamParser.parseApiMethodParamAnnotation(parameters[i],context);
                         }
-                        Object apply = func.apply(arg);
-                        if (apply != null) {
-                            context.response().end(apply.toString());
+                        try {
+                            Object apply = func.apply(arg);
+                            if (apply != null) {
+                                context.response().end(apply.toString());
+                            }
+                        }catch (Exception e){
+                            context.fail(e);
                         }
-
                     })
                     .failureHandler(failureRoutingContext -> {
 
-                        failureRoutingContext.response().end("出错啦"+failureRoutingContext.failure().toString());
+//                         failureRoutingContext.fail(500);
+                        failureRoutingContext.response()
+                                .setStatusCode(500)
+                                .putHeader("content-type", "application/json")
+                                .end("出错啦"+failureRoutingContext.failure().toString());
                     });
         });
         return router;
