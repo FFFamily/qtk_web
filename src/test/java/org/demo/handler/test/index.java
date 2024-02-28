@@ -11,6 +11,9 @@ public class index {
         System.out.println(str.toString());
         System.out.println(request.toString());
         System.out.println(JsonObject.mapFrom(obj222));
+        if (1 == 1){
+            throw new RuntimeException("111");
+        }
         return TestResponse.builder().id("1213").build();
     }
 }

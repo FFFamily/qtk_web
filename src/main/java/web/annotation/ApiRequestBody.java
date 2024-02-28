@@ -1,7 +1,9 @@
 package web.annotation;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.ext.web.RoutingContext;
+import lombok.SneakyThrows;
 import web.annotation.base.AbstractApiMethodParam;
 import web.annotation.parser.AbstractApiMethodParamAnnotationParser;
 
@@ -16,11 +18,11 @@ import java.lang.reflect.Parameter;
 @Retention(value = RetentionPolicy.RUNTIME)
 public @interface ApiRequestBody {
     class ApiRequestBodyParser extends AbstractApiMethodParamAnnotationParser<Object> {
+        @SneakyThrows // 移出 readValue 可能产生的IO异常
         @Override
         public Object parser(Parameter parameter, RoutingContext context) {
-            HttpServerRequest request = context.request();
-            return  request.body().result().toJson();
-//            return null;
+            ObjectMapper objectMapper = new ObjectMapper();
+            return  objectMapper.readValue(context.body().buffer().getBytes(),parameter.getType());
         }
     }
 }

@@ -1,9 +1,11 @@
 package web;
 
+import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServer;
 import io.vertx.ext.web.Router;
+import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.BodyHandler;
 import org.reflections.Reflections;
 import org.reflections.scanners.MethodAnnotationsScanner;
@@ -75,9 +77,13 @@ public class Server {
     private Router initRouter() {
         // 路由
         Router router = Router.router(vertx);
-//        router.route("/*")
-//                // 创建请求体处理
-//                .handler(BodyHandler.create());
+        router.route("/*")
+                // 创建请求体处理
+                .handler(BodyHandler.create());
+//                .blockingHandler(c -> {
+//                    System.out.println(c.body().asJsonObject());
+//                    c.next();
+//                });
         // 扫描 EnableWeb 下的所有 handler
         Reflections reflections = new Reflections(
                 new ConfigurationBuilder()
@@ -103,7 +109,9 @@ public class Server {
             String name = "/" + paths[paths.length - 2];
             System.out.println("生成接口："+ name);
             router.route(HttpMethod.POST, name)
+//                    .handler(BodyHandler.create())
                     .blockingHandler(context -> {
+//                        BodyHandler bodyHandler = BodyHandler.create();
                         // 拿到方法参数
                         Parameter[] parameters = handler.getParameters();
                         Object[] arg = new Object[parameters.length];
@@ -117,6 +125,11 @@ public class Server {
                         if (apply != null) {
                             context.response().end(apply.toString());
                         }
+
+                    })
+                    .failureHandler(failureRoutingContext -> {
+
+                        failureRoutingContext.response().end("出错啦"+failureRoutingContext.failure().toString());
                     });
         });
         return router;
