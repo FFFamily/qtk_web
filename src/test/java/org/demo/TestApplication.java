@@ -10,7 +10,7 @@ public class TestApplication {
         new Server(ServerOptions.builder()
                 .handlerPackage("org.demo.handler")
                 .host("127.0.0.1")
-                .port(8080).build())
+                .port(8081).build())
                 .start();
     }
 }

@@ -3,6 +3,7 @@ package org.demo.constant;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
+import org.demo.entity.MyParamEntity;
 import web.annotation.base.AbstractApiMethodParam;
 import web.annotation.parser.AbstractApiMethodParamAnnotationParser;
 import web.annotation.parser.ApiMethodParamAnnotationParser;
@@ -18,12 +19,12 @@ import java.util.HashMap;
 @AbstractApiMethodParam()
 @Retention(RetentionPolicy.RUNTIME)
 public @interface MyParam {
-    class MyParamParser extends AbstractApiMethodParamAnnotationParser<HashMap<String,String>> {
+    class MyParamParser extends AbstractApiMethodParamAnnotationParser<MyParamEntity> {
         @Override
-        public HashMap<String,String> parser(Parameter parameter, RoutingContext context) {
-            HashMap<String,String> map = new HashMap<>();
-            map.put("aa","11");
-            return  map;
+        public MyParamEntity parser(Parameter parameter, RoutingContext context) {
+            MyParamEntity myParam = new MyParamEntity();
+            myParam.setAa("adsas");
+            return  myParam;
         }
     }
 
