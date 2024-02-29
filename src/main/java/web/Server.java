@@ -1,11 +1,11 @@
 package web;
 
-import io.vertx.core.Handler;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServer;
+import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.Router;
-import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.BodyHandler;
 import org.reflections.Reflections;
 import org.reflections.scanners.MethodAnnotationsScanner;
@@ -15,6 +15,7 @@ import org.reflections.util.ClasspathHelper;
 import org.reflections.util.ConfigurationBuilder;
 import web.annotation.ApiHandler;
 import web.annotation.parser.MethodParamParser;
+import web.exception.BusinessException;
 import web.ops.ServerOptions;
 
 import java.lang.reflect.InvocationTargetException;
@@ -40,16 +41,12 @@ public class Server {
         this.options = options;
     }
 
-    private static Function<Object[], Object> getObjectFunction(Method handler, Object o) {
-        return (Object[] args) -> {
-            handler.setAccessible(true);
-            try {
-                return handler.invoke(o, args);
-            } catch (IllegalAccessException | InvocationTargetException e) {
-                throw new RuntimeException(e);
-            }
-        };
-    }
+//    private static Function<Object[], Object> getObjectFunction(Method handler, Object o)  {
+//        return (Object[] args) -> {
+//            handler.setAccessible(true);
+//            return handler.invoke(o, args);
+//        };
+//    }
 
     /**
      * web服务启动方法
@@ -95,7 +92,7 @@ public class Server {
                         )
         );
         Set<Method> allHandler = reflections.getMethodsAnnotatedWith(ApiHandler.class);
-        // 遍历所有的请求
+        // 遍历所有的 接口
         allHandler.forEach(handler -> {
             Class<?> clazz = handler.getDeclaringClass();
             Object o;
@@ -105,7 +102,7 @@ public class Server {
             } catch (InstantiationException | IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
                 throw new RuntimeException(e);
             }
-            Function<Object[], Object> func = getObjectFunction(handler, o);
+//            Function<Object[], Object> func = getObjectFunction(handler, o);
             String[] paths = clazz.getName().split("\\.");
             String name = "/" + paths[paths.length - 2];
             System.out.println("生成接口："+ name);
@@ -113,6 +110,7 @@ public class Server {
 //                    .handler(BodyHandler.create())
                     .blockingHandler(context -> {
 //                        BodyHandler bodyHandler = BodyHandler.create();
+
                         // 拿到方法参数
                         // TODO 不必要每次都需要去解析
                         Parameter[] parameters = handler.getParameters();
@@ -124,7 +122,11 @@ public class Server {
                             arg[i] = MethodParamParser.parseApiMethodParamAnnotation(parameters[i],context);
                         }
                         try {
-                            Object apply = func.apply(arg);
+                            handler.setAccessible(true);
+                            // TODO invoke 方法会默认抛出  InvocationTargetException：如果方法抛出了异常就会有这个InvocationTargetException
+                            // TODO 所以这里我认为这个不能用反射调用，而是直接初始化然后执行方法
+                            Object apply = handler.invoke(o, arg);
+//                            Object apply = func.apply(arg);
                             if (apply != null) {
                                 context.response().end(apply.toString());
                             }
@@ -133,12 +135,21 @@ public class Server {
                         }
                     })
                     .failureHandler(failureRoutingContext -> {
+                        Throwable throwable = failureRoutingContext.failure();
+                        throwable.printStackTrace();
+                        if (throwable instanceof BusinessException exception){
+                            // 如果为业务异常则不需要额外处理
+                            failureRoutingContext.response()
+                                    .setStatusCode(200)
+                                    .putHeader("content-type", "application/json")
+                                    .end(JsonObject.mapFrom(exception).encode());
+                        }else {
+                            failureRoutingContext.response()
+                                    .setStatusCode(500)
+                                    .putHeader("content-type", "application/json")
+                                    .end(JsonObject.of("msg", throwable.toString()).encode());
+                        }
 
-//                         failureRoutingContext.fail(500);
-                        failureRoutingContext.response()
-                                .setStatusCode(500)
-                                .putHeader("content-type", "application/json")
-                                .end("出错啦"+failureRoutingContext.failure().toString());
                     });
         });
         return router;
