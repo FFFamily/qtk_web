@@ -1,6 +1,4 @@
-package web.annotation.base;
-
-import web.annotation.parser.ApiMethodParamAnnotationParser;
+package web.annotation.api.base;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;

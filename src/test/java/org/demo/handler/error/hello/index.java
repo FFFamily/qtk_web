@@ -3,9 +3,8 @@ package org.demo.handler.error.hello;
 import io.vertx.core.json.JsonObject;
 import org.demo.constant.MyParam;
 import org.demo.entity.MyParamEntity;
-import web.annotation.ApiHandler;
-import web.annotation.ApiRequestBody;
-import web.exception.BusinessException;
+import web.annotation.api.ApiHandler;
+import web.annotation.api.ApiRequestBody;
 
 public class index {
     @ApiHandler

@@ -1,11 +1,10 @@
-package web.annotation;
+package web.annotation.api;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.vertx.core.http.HttpServerRequest;
 import io.vertx.ext.web.RoutingContext;
 import lombok.SneakyThrows;
-import web.annotation.base.AbstractApiMethodParam;
-import web.annotation.parser.AbstractApiMethodParamAnnotationParser;
+import web.annotation.api.base.AbstractApiMethodParam;
+import web.parser.base.AbstractApiMethodParamAnnotationParser;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;

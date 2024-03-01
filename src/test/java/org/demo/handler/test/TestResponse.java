@@ -3,7 +3,7 @@ package org.demo.handler.test;
 
 import lombok.Builder;
 import lombok.Data;
-import web.annotation.ApiResponseSchema;
+import web.annotation.api.ApiResponseSchema;
 
 @ApiResponseSchema
 @Data

@@ -1,4 +1,4 @@
-package web.annotation;
+package web.annotation.api;
 
 public @interface ApiHandler {
 }

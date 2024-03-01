@@ -1,4 +1,4 @@
-package web.middleware;
+package web.exception;
 
 public class ParamParsingException extends RuntimeException{
 

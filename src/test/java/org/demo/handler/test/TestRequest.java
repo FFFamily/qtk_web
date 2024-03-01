@@ -2,7 +2,7 @@ package org.demo.handler.test;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.Data;
-import web.annotation.ApiRequestSchema;
+import web.annotation.api.ApiRequestSchema;
 
 @ApiRequestSchema
 @Data
