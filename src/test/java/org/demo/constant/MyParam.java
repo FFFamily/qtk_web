@@ -1,5 +1,6 @@
 package org.demo.constant;
 
+import io.vertx.core.Vertx;
 import io.vertx.ext.web.RoutingContext;
 import org.demo.entity.MyParamEntity;
 import web.annotation.api.base.AbstractApiMethodParam;
@@ -18,6 +19,7 @@ public @interface MyParam {
     class MyParamParser extends AbstractApiMethodParamAnnotationParser<MyParamEntity> {
         @Override
         public MyParamEntity parser(Parameter parameter, RoutingContext context) {
+            System.out.println(Vertx.currentContext().config().getMap());
             MyParamEntity myParam = new MyParamEntity();
             myParam.setAa("adsas");
             return  myParam;

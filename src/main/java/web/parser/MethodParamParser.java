@@ -53,27 +53,14 @@ public class MethodParamParser {
                 if (annotationList.isEmpty()){
                     // 有被注解修饰，但没有 Api 注解
                     annotationParser = ParamAnnotationStrategy.get(null);
-//                arg[i] =  ParamAnnotationStrategy.get(null).parser(param,context);
                 }else if (annotationList.size() > 1){
                     // 多个 Api 注解共同修饰同一个
                     throw new RuntimeException(param.getName()+"存在多个Api注解");
                 }else {
                     annotationParser = ParamAnnotationStrategy.get(annotationList.get(0));
-//                arg[i] =  ParamAnnotationStrategy.get(annotationList.get(0)).parser(param,context);
                 }
                 parsers[i] = annotationParser;
                 arg[i] = annotationParser.parser(param,context);
-                // 有注解修饰
-//            for (Annotation paramAnnotation :annotations) {
-//                // 只有携带了 AbstractApiMethodParam 注解才会解析,才会对方法参数赋值
-//                AbstractApiMethodParam apiMethodParam = paramAnnotation.annotationType().getAnnotation(AbstractApiMethodParam.class);
-//                if (apiMethodParam != null){
-//                    arg[i] =  ParamAnnotationStrategy.get(paramAnnotation).parser(param,context);
-//                }else {
-//                    // 如果没有携带只序列化
-//                    arg[i] =  newInstanceParam(param);
-//                }
-//            }
             }
         }
         parserCache.put(apiPathName,parsers);
