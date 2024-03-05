@@ -7,6 +7,7 @@ import io.vertx.core.http.HttpServer;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.handler.BodyHandler;
+import io.vertx.ext.web.handler.TimeoutHandler;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.reflections.Reflections;
@@ -17,8 +18,10 @@ import web.middleware.LogicHandler;
 import web.parser.MethodParamParser;
 import web.exception.BusinessException;
 import web.ops.ServerOptions;
+import web.schema.Schema;
 import web.utils.MiddlewareUtil;
 import web.utils.ReflectionUtil;
+import web.utils.SchemaUtil;
 
 import java.lang.reflect.Method;
 import java.util.HashMap;
@@ -80,7 +83,9 @@ public class Server {
         // 路由
         Router router = Router.router(vertx);
         // 创建请求体处理
-        router.route("/*").handler(BodyHandler.create());
+        router.route("/*")
+                .handler(TimeoutHandler.create(5000))
+                .handler(BodyHandler.create());
         // 扫描 EnableWeb 下的所有 接口
         // TODO 目前用 options 替代
         Reflections reflections = ReflectionUtil.get(options.getHandlerPackage());
@@ -96,8 +101,12 @@ public class Server {
             // 我可以理解为这里只能支持单例的接口（如果要支持多例呢？）
             // TODO 而且我也没必要每次都序列化一次（工厂模式？）
             Object o = clazz.getDeclaredConstructor().newInstance();
+            // 接口位置
+            String packageName = clazz.getPackageName();
+            String schemaPackageName = packageName + ".schema";
+            Schema schema = SchemaUtil.findSchemaByPath(schemaPackageName);
             // 接口名称
-            String apiPathName = "/" + clazz.getPackageName().split(options.getHandlerPackage() + "\\.")[1].replaceAll("\\.","_");
+            String apiPathName = "/" + packageName.split(options.getHandlerPackage() + "\\.")[1].replaceAll("\\.","_");
             router.route(HttpMethod.POST, apiPathName)
                     .handler(context -> {
 //                        List<MiddlewareHandler> logicHandlerList = MiddlewareUtil.findAllMiddleWareByClazz(payload, (Class<? extends MiddlewareHandler>[]) new Class<?>[]{LogicHandler.class});
@@ -113,7 +122,6 @@ public class Server {
                         if (apply != null) {
                             context.response().end(JsonObject.mapFrom(apply).encode());
                         }
-
                     })
                     .failureHandler(failureRoutingContext -> {
                         Throwable throwable = failureRoutingContext.failure();
@@ -135,5 +143,6 @@ public class Server {
         }
         return router;
     }
+
 
 }

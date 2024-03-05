@@ -30,7 +30,6 @@ public class MethodParamParser {
         Object[] arg = new Object[parameters.length];
         if (parsers != null){
             // 已被解析过
-            System.out.println("被解析啦");
             for (int i = 0; i < parameters.length; i++) {
                 arg[i] = parsers[i].parser(parameters[i],context);
             }
