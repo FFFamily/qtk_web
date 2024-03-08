@@ -1,4 +1,4 @@
-package web.schema;
+package web.schema.obj;
 
 public interface Schema {
 }

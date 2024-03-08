@@ -2,21 +2,19 @@ package web.utils;
 
 import lombok.SneakyThrows;
 import org.reflections.Reflections;
-import web.annotation.api.ApiHandler;
 import web.annotation.api.ApiRequestSchema;
 import web.annotation.api.ApiResponseSchema;
 import web.annotation.api.ApiSchema;
+import web.dto.ApiSchemaInfo;
 import web.exception.CouldNotBuildRouteException;
-import web.schema.Schema;
+import web.schema.obj.Schema;
 
 import java.lang.reflect.Field;
-import java.lang.reflect.Method;
-import java.util.Arrays;
 import java.util.Set;
 
 public class SchemaUtil {
     @SneakyThrows
-    public static Schema findSchemaByPath(String schemaPackagePath){
+    public static ApiSchemaInfo findSchemaByPath(String schemaPackagePath){
         Reflections reflections = ReflectionUtil.get(schemaPackagePath);
         Set<Class<?>> typesAnnotatedWith = reflections.getTypesAnnotatedWith(ApiSchema.class);
         if (typesAnnotatedWith.size() == 1){
@@ -24,8 +22,8 @@ public class SchemaUtil {
             Class<?> aClass = typesAnnotatedWith.stream().findFirst().get();
             Field[] fields = aClass.getFields();
             // 既然配置了就强制要求有request和response
-            Schema request;
-            Schema response;
+            Schema request = null;
+            Schema response = null;
             for (Field field : fields) {
                 if (field.getAnnotation(ApiRequestSchema.class) != null){
                     request = (Schema) field.get(null);
@@ -34,8 +32,10 @@ public class SchemaUtil {
                     response = (Schema) field.get(null);
                 }
             }
-
-            return (Schema) aClass.getDeclaredConstructor().newInstance();
+            if (request == null || response == null){
+                throw new CouldNotBuildRouteException("无法正常构建Schema");
+            }
+            return ApiSchemaInfo.builder().request(request).response(response).build();
         }
         return null;
     }

@@ -11,7 +11,7 @@ import web.exception.BusinessException;
 
 public class index {
     @ApiHandler
-    public HelloResponse exec(Object str, @ApiRequestBody HelloRequest request, @MyParam MyParamEntity obj222){
+    public HelloResponse exec(Object str, @ApiRequestBody() HelloRequest request, @MyParam MyParamEntity obj222){
         System.out.println(str.toString());
         System.out.println(request.toString());
         System.out.println(JsonObject.mapFrom(obj222));

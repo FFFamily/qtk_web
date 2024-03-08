@@ -9,16 +9,14 @@ import io.vertx.ext.web.Router;
 import io.vertx.ext.web.handler.BodyHandler;
 import io.vertx.ext.web.handler.TimeoutHandler;
 import lombok.SneakyThrows;
-import lombok.extern.slf4j.Slf4j;
 import org.reflections.Reflections;
 import web.annotation.api.ApiHandler;
 import web.annotation.middleware.MiddlewareHandler;
-import web.exception.CouldNotBuildRouteException;
-import web.middleware.LogicHandler;
+import web.dto.ApiSchemaInfo;
 import web.parser.MethodParamParser;
 import web.exception.BusinessException;
 import web.ops.ServerOptions;
-import web.schema.Schema;
+import web.schema.parser.SchemaVerification;
 import web.utils.MiddlewareUtil;
 import web.utils.ReflectionUtil;
 import web.utils.SchemaUtil;
@@ -27,7 +25,6 @@ import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Set;
-import java.util.logging.Logger;
 
 /**
  * 构建 Web 服务的启动类
@@ -104,20 +101,17 @@ public class Server {
             // 接口位置
             String packageName = clazz.getPackageName();
             String schemaPackageName = packageName + ".schema";
-            Schema schema = SchemaUtil.findSchemaByPath(schemaPackageName);
+            ApiSchemaInfo schemaInfo = SchemaUtil.findSchemaByPath(schemaPackageName);
             // 接口名称
             String apiPathName = "/" + packageName.split(options.getHandlerPackage() + "\\.")[1].replaceAll("\\.","_");
             router.route(HttpMethod.POST, apiPathName)
                     .handler(context -> {
-//                        List<MiddlewareHandler> logicHandlerList = MiddlewareUtil.findAllMiddleWareByClazz(payload, (Class<? extends MiddlewareHandler>[]) new Class<?>[]{LogicHandler.class});
-//                        if (logicHandlerList.isEmpty()){
-//                            throw new CouldNotBuildRouteException("缺少接口执行体");
-//                        }
-//                        MiddlewareHandler logicHandler = logicHandlerList.get(0);
-//                        logicHandler.doHandle(payload,context);
                         beforeMiddleWares.forEach(item -> item.doHandle(payload,context));
                         Object[] args = MethodParamParser.parseApiMethodParamAnnotation(apiPathName,handler.getParameters(), context);
                         Object apply = methodInvoker.invoke(o, handler.getName(), args);
+                        if (schemaInfo != null){
+                            SchemaVerification.check(schemaInfo.getRequest(),context.body().buffer().toJson());
+                        }
                         afterMiddleWares.forEach(item -> item.doHandle(payload,context));
                         if (apply != null) {
                             context.response().end(JsonObject.mapFrom(apply).encode());

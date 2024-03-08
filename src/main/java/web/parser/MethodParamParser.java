@@ -21,11 +21,11 @@ public class MethodParamParser {
      * 除了web框架中已有的，同时也要支持用户自定义的注解
      * 解析方法参数注解 若存在对应注解就进行解析,没有就不赋值
      * TODO 需要考虑到突然性的并发问题，防止解析器解析错误
-     * TODO 可以在编译的时候就爆出相关的解析问题，而不是在掉接口的时候(这种有效的解决了加载问题由 343ms 转为 11ms)
+     * TODO 可以在编译的时候就爆出相关的解析问题，而不是在掉接口的时
      * @param apiPathName 请求路径 路径是唯一的
      * @param parameters  方法参数
      */
-    public synchronized static Object[] parseApiMethodParamAnnotation(String apiPathName, Parameter[] parameters, RoutingContext context){
+    public static Object[] parseApiMethodParamAnnotation(String apiPathName, Parameter[] parameters, RoutingContext context){
         ApiMethodParamAnnotationParser<?>[] parsers = parserCache.get(apiPathName);
         Object[] arg = new Object[parameters.length];
         if (parsers != null){

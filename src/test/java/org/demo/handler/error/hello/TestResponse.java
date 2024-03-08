@@ -5,7 +5,6 @@ import lombok.Builder;
 import lombok.Data;
 import web.annotation.api.ApiResponseSchema;
 
-@ApiResponseSchema
 @Data
 @Builder
 public class TestResponse {
