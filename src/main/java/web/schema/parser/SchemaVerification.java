@@ -1,5 +1,6 @@
 package web.schema.parser;
 
+import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RequestBody;
 import web.exception.CouldNotBuildRouteException;
 import web.schema.S;
@@ -15,9 +16,7 @@ public class SchemaVerification {
      * @param schema
      * @param resource
      */
-
-    public static void check(Schema schema, Object resource){
-        Stack<Schema> stacks = new Stack<>();
+    public static void check(Schema schema, JsonObject resource){
 //        VerificationInfo verificationInfo = new VerificationInfo();
         if (schema instanceof ObjectSchema objectSchema){
             AbstractSchemaVerification parser = new ObjectSchemaParser();

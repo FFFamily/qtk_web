@@ -24,11 +24,12 @@ public class ObjectSchemaParser extends AbstractSchemaVerification {
 
     public void check(Schema schema, Object resource) {
         ObjectSchema objectSchema = (ObjectSchema) schema;
+        JsonObject objectResource = (JsonObject) resource;
         Map<String, Object> object;
         if (resource == null){
             object = new HashMap<>();
         }else {
-            object = JsonObject.mapFrom(resource).getMap();
+            object = objectResource.getMap();
         }
 
         HashMap<String, Schema> propertiesMap = objectSchema.getPropertiesMap();
