@@ -1,7 +1,6 @@
 package web.parser;
 
 import io.vertx.ext.web.RoutingContext;
-import web.parser.base.AbstractApiMethodParamAnnotationParser;
 import web.exception.ParamParsingException;
 
 import java.lang.reflect.Parameter;

@@ -13,7 +13,7 @@ import org.reflections.Reflections;
 import web.annotation.api.ApiHandler;
 import web.annotation.middleware.MiddlewareHandler;
 import web.dto.ApiSchemaInfo;
-import web.parser.MethodParamParser;
+import web.parser.MethodParamMapping;
 import web.exception.BusinessException;
 import web.ops.ServerOptions;
 import web.schema.parser.SchemaVerification;
@@ -107,10 +107,10 @@ public class Server {
             router.route(HttpMethod.POST, apiPathName)
                     .handler(context -> {
                         beforeMiddleWares.forEach(item -> item.doHandle(payload,context));
-                        Object[] args = MethodParamParser.parseApiMethodParamAnnotation(apiPathName,handler.getParameters(), context);
+                        Object[] args = MethodParamMapping.parseApiMethodParamAnnotation(apiPathName,handler.getParameters(), context);
                         Object apply = methodInvoker.invoke(o, handler.getName(), args);
                         if (schemaInfo != null){
-                            SchemaVerification.check(schemaInfo.getRequest(),context.body().buffer().toJson());
+                            SchemaVerification.check(schemaInfo.getRequest(),context.body().asJsonObject().getMap());
                         }
                         afterMiddleWares.forEach(item -> item.doHandle(payload,context));
                         if (apply != null) {

@@ -4,7 +4,7 @@ import io.vertx.core.Vertx;
 import io.vertx.ext.web.RoutingContext;
 import org.demo.entity.MyParamEntity;
 import web.annotation.api.base.AbstractApiMethodParam;
-import web.parser.base.AbstractApiMethodParamAnnotationParser;
+import web.parser.AbstractApiMethodParamAnnotationParser;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;

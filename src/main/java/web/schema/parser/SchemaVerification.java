@@ -13,14 +13,15 @@ import java.util.Stack;
 public class SchemaVerification {
     /**
      * 每个schema 的解析可以转为一个解析树
+     * todo 似乎可以用模板方法
      * @param schema
      * @param resource
      */
-    public static void check(Schema schema, JsonObject resource){
-//        VerificationInfo verificationInfo = new VerificationInfo();
+    public static void check(Schema schema, Object resource){
+        Object o = JsonObject.mapFrom(resource).getMap().get("request");
         if (schema instanceof ObjectSchema objectSchema){
             AbstractSchemaVerification parser = new ObjectSchemaParser();
-            parser.check(objectSchema,resource);
+            parser.check(objectSchema,o,".");
         }else {
             throw new CouldNotBuildRouteException("不支持的schema校验");
         }

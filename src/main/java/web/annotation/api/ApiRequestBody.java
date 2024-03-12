@@ -4,16 +4,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.vertx.ext.web.RoutingContext;
 import lombok.SneakyThrows;
 import web.annotation.api.base.AbstractApiMethodParam;
-import web.parser.base.AbstractApiMethodParamAnnotationParser;
-import web.schema.obj.Schema;
-import web.schema.parser.SchemaVerification;
+import web.parser.AbstractApiMethodParamAnnotationParser;
 
-import javax.lang.model.type.NullType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
-import java.lang.reflect.Field;
 import java.lang.reflect.Parameter;
-import java.util.Objects;
 
 /**
  * 接口请求体
@@ -27,7 +22,7 @@ public @interface ApiRequestBody {
         @Override
         public Object parser(Parameter parameter, RoutingContext context) {
             ObjectMapper objectMapper = new ObjectMapper();
-            return  objectMapper.readValue(context.body().buffer().getBytes(),parameter.getType());
+            return objectMapper.readValue(context.body().buffer().getBytes(),parameter.getType());
         }
     }
 }

@@ -1,6 +1,9 @@
 package web.parser;
 
 import io.vertx.ext.web.RoutingContext;
+import lombok.SneakyThrows;
+import web.annotation.api.ApiRequestBody;
+import web.annotation.api.ApiRequestHeader;
 import web.annotation.api.base.AbstractApiMethodParam;
 import web.parser.base.ApiMethodParamAnnotationParser;
 
@@ -13,9 +16,16 @@ import java.util.List;
 /**
  * 注解解析器
  */
-public class MethodParamParser {
+public class MethodParamMapping {
     // 保留每个路径下的参数解析器
     private static final HashMap<String, ApiMethodParamAnnotationParser<?>[]> parserCache = new HashMap<>();
+    private static final HashMap<Class<? extends Annotation>, ApiMethodParamAnnotationParser<?>> paramAnnotationStrategy = new HashMap<>();
+
+    static {
+        paramAnnotationStrategy.put(ApiRequestBody.class,new ApiRequestBody.ApiRequestBodyParser());
+        paramAnnotationStrategy.put(ApiRequestHeader.class,new ApiRequestHeader.ApiRequestHeaderParser());
+    }
+
     /**
      * 解析api方法参数
      * 除了web框架中已有的，同时也要支持用户自定义的注解
@@ -41,7 +51,7 @@ public class MethodParamParser {
                 ApiMethodParamAnnotationParser<?> annotationParser;
                 if (annotations.length == 0){
                     // 没有被注解修饰
-                    annotationParser = ParamAnnotationStrategy.get(null);
+                    annotationParser = get(null);
                     parsers[i] = annotationParser;
                     arg[i] =  annotationParser.parser(param,context);
                     continue;
@@ -51,12 +61,12 @@ public class MethodParamParser {
                         .toList();
                 if (annotationList.isEmpty()){
                     // 有被注解修饰，但没有 Api 注解
-                    annotationParser = ParamAnnotationStrategy.get(null);
+                    annotationParser = get(null);
                 }else if (annotationList.size() > 1){
                     // 多个 Api 注解共同修饰同一个
                     throw new RuntimeException(param.getName()+"存在多个Api注解");
                 }else {
-                    annotationParser = ParamAnnotationStrategy.get(annotationList.get(0));
+                    annotationParser = get(annotationList.get(0));
                 }
                 parsers[i] = annotationParser;
                 arg[i] = annotationParser.parser(param,context);
@@ -64,6 +74,34 @@ public class MethodParamParser {
         }
         parserCache.put(apiPathName,parsers);
         return arg;
+    }
+
+    /**
+     * 拿到注解修饰的变量解析器
+     * @param annotation 修饰变量的注解 为null代表没有注解
+     * @return 解析器
+     */
+    @SneakyThrows
+    public static ApiMethodParamAnnotationParser<?> get(Annotation annotation) {
+        if (annotation == null){
+            // 注解为null走默认解析器流程
+            return new DefaultApiMethodParamAnnotationParser();
+        }
+        ApiMethodParamAnnotationParser<?> p = paramAnnotationStrategy.get(annotation.annotationType());
+        if (p == null){
+            // 尝试去找用户自定义的解析器
+            List<Class<?>> classes = Arrays.stream(annotation.annotationType().getClasses())
+                    .filter(item -> item.getSuperclass().isAssignableFrom(AbstractApiMethodParamAnnotationParser.class))
+                    .toList();
+            if (classes.isEmpty()){
+                return new DefaultApiMethodParamAnnotationParser();
+            }else if (classes.size() > 1){
+                throw new RuntimeException("用户自定义Api方法注解不能具备多个解析器");
+            }else {
+                return (ApiMethodParamAnnotationParser<?>) classes.get(0).getDeclaredConstructor().newInstance();
+            }
+        }
+        return p;
     }
 
 }

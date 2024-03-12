@@ -3,7 +3,7 @@ package web.annotation.api;
 import io.vertx.core.MultiMap;
 import io.vertx.ext.web.RoutingContext;
 import web.annotation.api.base.AbstractApiMethodParam;
-import web.parser.base.AbstractApiMethodParamAnnotationParser;
+import web.parser.AbstractApiMethodParamAnnotationParser;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
