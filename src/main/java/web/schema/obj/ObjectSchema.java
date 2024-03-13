@@ -3,17 +3,25 @@ package web.schema.obj;
 import lombok.Builder;
 import lombok.Data;
 
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.Queue;
+import java.util.*;
 
 @Data
 public class ObjectSchema extends AbstractSchema{
     private final HashMap<String, Schema> propertiesMap;
+    private ObjectSchemaNode root;
     private String[] requires;
-    private Queue<SchemaItem> query = new LinkedList<>();
+    private Schema ifSchema;
     public ObjectSchema(){
+        this(1);
+    }
+
+    public ObjectSchema(Integer type){
         this.propertiesMap = new HashMap<>();
+        root = ObjectSchemaNode
+                .builder()
+                .type(type)
+                .children(new ArrayList<>())
+                .build();
     }
 
     public ObjectSchema require(String... requireProperties){
@@ -21,24 +29,33 @@ public class ObjectSchema extends AbstractSchema{
         return this;
     }
     public ObjectSchema properties(String keyName,Schema schema){
-        this.propertiesMap.put(keyName,schema);
+        propertiesMap.put(keyName,schema);
+        root.children.add(buildNode(keyName));
         return this;
     }
 
-    public ObjectSchema toIf(Boolean flag){
-        query.add(SchemaItem.builder()
-                .type(0)
-                        .sing("if")
-                .build());
-        return this;
+    public ObjectSchema toIf(){
+        ObjectSchema ifSchema = new ObjectSchema(2);
+        // 如果是if那么子节点都是判断规则
+        root.children.add(ifSchema.root);
+        return ifSchema;
+    }
+
+    private ObjectSchemaNode buildNode(String schemaKey){
+        return ObjectSchemaNode.builder().schemaKey(schemaKey).type(1).build();
+    }
+
+    private ObjectSchemaNode buildJudgeNode(Integer type){
+        return ObjectSchemaNode.builder().type(type).build();
     }
 
     @Data
     @Builder
-    static class SchemaItem{
-        // 判断符号 0 || schema 1
+    static class ObjectSchemaNode{
+        // schema 1 | if 2 | else if 3 | else 4
         private Integer type;
-        private String sing;
-        private Schema schema;
+        private String schemaKey;
+        private ObjectSchemaNode parent;
+        private List<ObjectSchemaNode> children;
     }
 }
