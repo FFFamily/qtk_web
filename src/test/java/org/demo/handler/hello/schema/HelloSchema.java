@@ -9,9 +9,15 @@ import web.schema.obj.Schema;
 public class HelloSchema {
     @ApiRequestSchema
     public static Schema request = S.object()
+            .properties("type",S.integer())
             .properties("name",S.object()
                     .properties("id",S.object())
                     .require("id"))
+            .toIf()
+            .has("type")
+            .end()
+            .properties("age",S.integer())
+
             .require("name");
 
     @ApiResponseSchema
