@@ -16,7 +16,7 @@ import web.dto.ApiSchemaInfo;
 import web.parser.MethodParamMapping;
 import web.exception.BusinessException;
 import web.ops.ServerOptions;
-import web.schema.parser.SchemaVerification;
+import web.schema.verification.SchemaVerification;
 import web.utils.MiddlewareUtil;
 import web.utils.ReflectionUtil;
 import web.utils.SchemaUtil;

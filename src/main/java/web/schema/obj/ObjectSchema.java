@@ -1,41 +1,37 @@
 package web.schema.obj;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.Getter;
+import lombok.*;
 import web.exception.FailToBuildSchemaException;
 
 import java.util.*;
 
+/**
+ * 实现方案
+ */
+@EqualsAndHashCode(callSuper = true)
 @Data
+@Builder
+@AllArgsConstructor
 public class ObjectSchema extends AbstractSchema {
     private final HashMap<String, Schema> propertiesMap;
-    private ObjectSchemaNode root;
+//    private ObjectSchemaNode root;
     private String[] requires;
     private Schema ifSchema;
+    private Integer type;
+    private String matchType;
+    private Object[] matchResource;
+    private String schemaKey;;
+    private ObjectSchema parent;
+    private List<ObjectSchema> children;
 
     public ObjectSchema() {
-        this.propertiesMap = new HashMap<>();
+        this(NodeTypeEnum.SCHEMA.code);
     }
 
     public ObjectSchema(Integer type) {
         this.propertiesMap = new HashMap<>();
-        root = ObjectSchemaNode
-                .builder()
-                .type(type)
-                .children(new LinkedList<>())
-                .build();
-    }
-
-    private ObjectSchemaNode createRoot(Integer type){
-        // 懒加载
-        // 只有当涉及到if等复杂操作时才会尝试构建树
-        return ObjectSchemaNode
-                .builder()
-                .type(type)
-                .children(new LinkedList<>())
-                .build();
+        this.type = type;
+        this.children = new ArrayList<>();
     }
 
     public ObjectSchema require(String... requireProperties) {
@@ -51,44 +47,49 @@ public class ObjectSchema extends AbstractSchema {
 
     public ObjectSchema toIf() {
         ObjectSchema ifSchema = new ObjectSchema(2);
-        ObjectSchemaNode currentSchema = ifSchema.root;
-        if (root == null){
-            root = createRoot(1);
-        }
-        if (root.type != 1) {
+        if (this.type != 1) {
             throw new FailToBuildSchemaException("if 只能去修饰 schema");
         }
-        root.children.add(currentSchema);
-        currentSchema.parent = root;
+        ifSchema.parent = this;
         return ifSchema;
     }
 
-    public ObjectSchema end() {
-        if (root.type != 2 && root.type != 3 && root.type != 4) {
+    public ObjectSchema endIf(){
+        ObjectSchema p = this.parent;
+        this.parent = null;
+        p.children.add(this);
+        return p;
+    }
+
+
+    public ObjectSchema then() {
+        if (this.type != 2 && this.type != 3 && this.type != 4) {
             // 父节点只能是判断位
             throw new FailToBuildSchemaException("只有在有判断符的前提下才能使用判断条件");
         }
         ObjectSchema node = new ObjectSchema(6);
-        Optional<ObjectSchemaNode> otherThenSchema = root.children.stream().filter(item -> item.type.equals(6)).findFirst();
-        otherThenSchema.ifPresent(value -> root.children.remove(value));
-        root.children.add(node.root);
-        node.root.parent = root;
-//        ObjectSchemaNode temp = node;
-//        while (!temp.getType().equals(NodeTypeEnum.IF.getCode())){
-//            temp = temp.parent;
-//        }
+        Optional<ObjectSchema> otherThenSchema = this.children.stream().filter(item -> item.type.equals(6)).findFirst();
+        otherThenSchema.ifPresent(value -> this.children.remove(value));
+        node.parent = this;
         return node;
     }
 
+    public ObjectSchema end(){
+        ObjectSchema p = this.parent;
+        this.parent = null;
+        p.children.add(this);
+        return p;
+    }
+
     public ObjectSchema has(String... keyName) {
-        if (root.type != 2 && root.type != 3 && root.type != 4) {
+        if (this.type != 2 && this.type != 3 && this.type != 4) {
             // 父节点只能是判断位
             throw new FailToBuildSchemaException("只有在有判断符的前提下才能使用判断条件");
         }
-        ObjectSchemaNode match = buildJudgeNode(5);
+        ObjectSchema match = buildJudgeNode(5);
         match.setMatchType("has");
         match.setMatchResource(keyName);
-        root.children.add(match);
+        this.children.add(match);
         return this;
     }
 
@@ -108,50 +109,32 @@ public class ObjectSchema extends AbstractSchema {
     public ObjectSchema toElse() {
         ObjectSchema elseSchema = new ObjectSchema(4);
         // 如果是if那么子节点都是判断规则
-        ObjectSchemaNode currentSchema = elseSchema.root;
-        if ( root.type != 6) {
-            // 构建错误
-            throw new FailToBuildSchemaException("else 前必须为 then");
+        if ( this.type != 2 && this.type != 3) {
+            throw new FailToBuildSchemaException("else 前必须为 if 或者 else if");
         }
-        root.children.add(elseSchema.root);
-        currentSchema.parent = root;
-        return elseSchema;
+        elseSchema.parent = this;
+        return this;
     }
 
     public ObjectSchema toElseIf() {
         ObjectSchema elseIfSchema = new ObjectSchema(3);
         // 如果是if那么子节点都是判断规则
-        ObjectSchemaNode currentSchema = elseIfSchema.root;
-        if (root.type != 2) {
+        if (this.type != 2) {
             // 构建错误
             throw new FailToBuildSchemaException("else if 前必须为 if ");
         }
-        root.children.add(elseIfSchema.root);
-        currentSchema.parent = root;
+        elseIfSchema.parent = this;
         return elseIfSchema;
     }
 
-    private ObjectSchemaNode buildNode(String schemaKey) {
-        return ObjectSchemaNode.builder().schemaKey(schemaKey).type(1).build();
+    private ObjectSchema buildNode(String schemaKey) {
+        return ObjectSchema.builder().schemaKey(schemaKey).type(1).build();
     }
 
-    private ObjectSchemaNode buildJudgeNode(Integer type) {
-        return ObjectSchemaNode.builder().type(type).build();
+    private ObjectSchema buildJudgeNode(Integer type) {
+        return ObjectSchema.builder().type(type).build();
     }
 
-    @Data
-    @Builder
-    public static class ObjectSchemaNode {
-        // schema 1 | if 2 | else if 3 | else 4 | match（判断条件）5 | then 6
-        private Integer type;
-        private String matchType;
-        private Object[] matchResource;
-        private String schemaKey;
-        // 不能封装自己，会有栈溢出的情况
-//        private Schema schema;
-        private ObjectSchemaNode parent;
-        private List<ObjectSchemaNode> children;
-    }
 
     @Getter
     @AllArgsConstructor

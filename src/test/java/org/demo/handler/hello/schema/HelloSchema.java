@@ -15,10 +15,18 @@ public class HelloSchema {
                     .require("id"))
             .toIf()
             .has("type")
+            .then()
+            .require("age")
             .end()
-            .properties("age",S.integer())
-
-            .require("name");
+            .toElse()
+            .require("demo")
+            .toElse()
+            .endIf();
+//            .has("type")
+//            .end()
+//            .properties("age",S.integer())
+//            .toElse()
+//            .require("name");
 
     @ApiResponseSchema
     public static Schema response = S.object();

@@ -13,8 +13,8 @@ import java.lang.reflect.Field;
 import java.util.Set;
 
 public class SchemaUtil {
-    @SneakyThrows
-    public static ApiSchemaInfo findSchemaByPath(String schemaPackagePath){
+
+    public static ApiSchemaInfo findSchemaByPath(String schemaPackagePath) throws IllegalAccessException {
         Reflections reflections = ReflectionUtil.get(schemaPackagePath);
         Set<Class<?>> typesAnnotatedWith = reflections.getTypesAnnotatedWith(ApiSchema.class);
         if (typesAnnotatedWith.size() == 1){
