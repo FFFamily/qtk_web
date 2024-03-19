@@ -15,8 +15,8 @@ public class StatisticMiddleware extends MiddlewareHandler {
 
     @Override
     public void doHandle(HashMap<String, Object> payload, RoutingContext context) {
-        map.put(context.currentRoute().getPath(), map.getOrDefault(context.currentRoute().getPath(),0)+1);
-        System.out.println("统计接口次数");
-        System.out.println("当前接口次数为" + map.get(context.currentRoute().getPath()));
+//        map.put(context.currentRoute().getPath(), map.getOrDefault(context.currentRoute().getPath(),0)+1);
+//        System.out.println("统计接口次数");
+//        System.out.println("当前接口次数为" + map.get(context.currentRoute().getPath()));
     }
 }

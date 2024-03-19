@@ -1,6 +1,7 @@
 package org.demo.handler.test;
 
 import io.vertx.core.json.JsonObject;
+import org.demo.client.Client;
 import org.demo.constant.MyParam;
 import org.demo.entity.MyParamEntity;
 import web.annotation.api.ApiHandler;
@@ -10,9 +11,11 @@ import web.exception.BusinessException;
 public class index {
     @ApiHandler
     public TestResponse exec(Object str,@ApiRequestBody TestRequest request,@MyParam MyParamEntity obj222){
-        System.out.println(str.toString());
-        System.out.println(request.toString());
-        System.out.println(JsonObject.mapFrom(obj222));
+        System.out.println("====测试异步调用========");
+        Object res = Client.account.helloWord().await();
+        System.out.println("测试结果："+res);
+        Client.account.test().await();
+        System.out.println("====测试异步调用========结束==========");
         return TestResponse.builder().id("1213").build();
     }
 }
