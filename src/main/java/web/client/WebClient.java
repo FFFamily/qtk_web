@@ -1,13 +1,14 @@
 package web.client;
 
 import lombok.SneakyThrows;
-
 import org.springframework.cglib.proxy.Enhancer;
 import org.springframework.cglib.proxy.MethodInterceptor;
 import org.springframework.cglib.proxy.MethodProxy;
 import web.promise.WebPromise;
 
 import java.lang.reflect.Method;
+import java.util.Arrays;
+import java.util.HashMap;
 
 public class WebClient {
 
@@ -21,7 +22,7 @@ public class WebClient {
         enhancer.setCallback(new WebClientInterceptor());
         // 创建代理对象
         Object client = enhancer.create();
-        this.getClass().getField(target.getSimpleName().toLowerCase()).set(this,client);
+        this.getClass().getField(target.getSimpleName().toLowerCase()).set(this, client);
     }
 
     static class WebClientInterceptor implements MethodInterceptor {
@@ -33,9 +34,16 @@ public class WebClient {
 //                time+=100L;
 //                Thread.sleep(100L);
 //            }
-            Thread.sleep(2000L);
-            System.out.println("当前线程："+Thread.currentThread()+"执行方法为："+method.getName());
-            return WebPromise.defaultResolve();
+//            Thread.sleep(1000L);
+            System.out.println("当前线程：" + Thread.currentThread() + "执行方法为：" + method.getName());
+            return WebPromise.defaultResolve()
+                    .then(() -> {
+                        HashMap<String, Object> result = new HashMap<>();
+                        result.put("code", 200);
+                        result.put("msg", "success");
+                        result.put("data", Arrays.asList("1", "2", "3"));
+                        return result;
+                    });
         }
     }
 }

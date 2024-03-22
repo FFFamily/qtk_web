@@ -4,18 +4,20 @@ import com.esotericsoftware.reflectasm.MethodAccess;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServer;
+import io.vertx.core.http.HttpServerOptions;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.handler.BodyHandler;
-import io.vertx.ext.web.handler.TimeoutHandler;
 import lombok.SneakyThrows;
 import org.reflections.Reflections;
 import web.annotation.api.ApiHandler;
 import web.annotation.middleware.MiddlewareHandler;
 import web.dto.ApiSchemaInfo;
-import web.parser.MethodParamMapping;
 import web.exception.BusinessException;
+import web.factory.ClassFactory;
+import web.factory.ObjFactory;
 import web.ops.ServerOptions;
+import web.parser.MethodParamMapping;
 import web.schema.verification.SchemaVerification;
 import web.utils.MiddlewareUtil;
 import web.utils.ReflectionUtil;
@@ -25,6 +27,7 @@ import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 /**
  * 构建 Web 服务的启动类
@@ -43,23 +46,23 @@ public class Server {
         this.options = options;
     }
 
-//    private static Function<Object[], Object> getObjectFunction(Method handler, Object o)  {
-//        return (Object[] args) -> {
-//            handler.setAccessible(true);
-//            return handler.invoke(o, args);
-//        };
-//    }
-
     /**
+     * todo 幂等性
      * web服务启动方法
      */
     public void start() {
+        HttpServerOptions httpServerOptions = new HttpServerOptions();
+        httpServerOptions.setIdleTimeout(2);
+        httpServerOptions.setIdleTimeoutUnit(TimeUnit.SECONDS);
+        httpServerOptions.setHost(options.getHost());
+        httpServerOptions.setPort(options.getPort());
         // 构建 server
-        HttpServer server = vertx.createHttpServer();
+        HttpServer server = vertx.createHttpServer(httpServerOptions);
         // 路由
         server.requestHandler(initRouter());
+
         // 监听地址
-        server.listen(options.getPort(), options.getHost());
+        server.listen();
     }
 
     /**
@@ -75,63 +78,70 @@ public class Server {
      */
 
     @SneakyThrows
-    @SuppressWarnings("unchecked")
     private Router initRouter() {
         // 路由
         Router router = Router.router(vertx);
         // 创建请求体处理
         router.route("/*")
-                .handler(TimeoutHandler.create(5000))
-                .handler(BodyHandler.create());
+                .order(0)
+                .handler(BodyHandler.create())
+                .handler(res -> {
+                    vertx.setTimer(5000, id -> {
+                        if (!res.response().ended()) {
+                            res.response()
+                                    .setStatusCode(504)
+                                    .end("Request Timeout");
+                        }
+                    });
+                });
         // 扫描 EnableWeb 下的所有 接口
-        // TODO 目前用 options 替代
         Reflections reflections = ReflectionUtil.get(options.getHandlerPackage());
         Set<Method> allHandler = reflections.getMethodsAnnotatedWith(ApiHandler.class);
-        HashMap<String,Object> payload = new HashMap<>();
-        List<MiddlewareHandler> beforeMiddleWares = MiddlewareUtil.findAllMiddleWareByClazz(payload,options.getBefore());
-        List<MiddlewareHandler> afterMiddleWares = MiddlewareUtil.findAllMiddleWareByClazz(payload,options.getAfter());
+        HashMap<String, Object> payload = new HashMap<>();
+        List<MiddlewareHandler> beforeMiddleWares = MiddlewareUtil.findAllMiddleWareByClazz(payload, options.getBefore());
+        List<MiddlewareHandler> afterMiddleWares = MiddlewareUtil.findAllMiddleWareByClazz(payload, options.getAfter());
+        ObjFactory factory = new ClassFactory();
         // 遍历所有的 接口，为接口添加路由
         for (Method handler : allHandler) {
             Class<?> clazz = handler.getDeclaringClass();
-            MethodAccess methodInvoker = MethodAccess.get(clazz);
             handler.setAccessible(true);
-            // 我可以理解为这里只能支持单例的接口（如果要支持多例呢？）
-            // TODO 而且我也没必要每次都序列化一次（工厂模式？）
-            Object o = clazz.getDeclaredConstructor().newInstance();
+            Object o = factory.createObj(clazz);
             // 接口位置
             String packageName = clazz.getPackageName();
             String schemaPackageName = packageName + ".schema";
             ApiSchemaInfo schemaInfo = SchemaUtil.findSchemaByPath(schemaPackageName);
             // 接口名称
-            String apiPathName = "/" + packageName.split(options.getHandlerPackage() + "\\.")[1].replaceAll("\\.","_");
+            String apiPathName = "/" + packageName.split(options.getHandlerPackage() + "\\.")[1].replaceAll("\\.", "_");
             router.route(HttpMethod.POST, apiPathName)
                     .handler(context -> {
-                        beforeMiddleWares.forEach(item -> item.doHandle(payload,context));
-                        Object[] args = MethodParamMapping.parseApiMethodParamAnnotation(apiPathName,handler.getParameters(), context);
-                        Object apply = methodInvoker.invoke(o, handler.getName(), args);
-                        if (schemaInfo != null){
-                            SchemaVerification.check(schemaInfo.getRequest(),context.body().asJsonObject().getMap());
+                        beforeMiddleWares.forEach(item -> item.doHandle(payload, context));
+                        Object[] args = MethodParamMapping.parseApiMethodParamAnnotation(apiPathName, handler.getParameters(), context);
+                        Object apply = MethodAccess.get(clazz).invoke(o, handler.getName(), args);
+                        if (schemaInfo != null) {
+                            SchemaVerification.check(schemaInfo.getRequest(), context.body().asJsonObject().getMap());
                         }
-                        afterMiddleWares.forEach(item -> item.doHandle(payload,context));
+                        afterMiddleWares.forEach(item -> item.doHandle(payload, context));
                         if (apply != null) {
                             context.response().end(JsonObject.mapFrom(apply).encode());
                         }
                     })
                     .failureHandler(failureRoutingContext -> {
                         Throwable throwable = failureRoutingContext.failure();
-                        throwable.printStackTrace();
-                        if (throwable instanceof BusinessException exception) {
-                            // 如果为业务异常则不需要额外处理
-                            failureRoutingContext.response()
-                                    .setStatusCode(200)
-                                    .putHeader("content-type", "application/json")
+                        if (throwable != null) {
+                            throwable.printStackTrace();
+                            if (throwable instanceof BusinessException exception) {
+                                // 如果为业务异常则不需要额外处理
+                                failureRoutingContext.response()
+                                        .setStatusCode(200)
+                                        .putHeader("content-type", "application/json")
 //                                    .end(JsonObject.mapFrom(exception).encode());
-                                    .end(JsonObject.of("code", exception.getCode(), "data", exception.getErrorMessage()).encode());
-                        } else {
-                            failureRoutingContext.response()
-                                    .setStatusCode(500)
-                                    .putHeader("content-type", "application/json")
-                                    .end(JsonObject.of("msg", throwable.toString()).encode());
+                                        .end(JsonObject.of("code", exception.getCode(), "data", exception.getErrorMessage()).encode());
+                            } else {
+                                failureRoutingContext.response()
+                                        .setStatusCode(500)
+                                        .putHeader("content-type", "application/json")
+                                        .end(JsonObject.of("msg", throwable.toString()).encode());
+                            }
                         }
                     });
         }
